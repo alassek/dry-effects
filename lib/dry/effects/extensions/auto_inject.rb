@@ -41,6 +41,11 @@ module Dry
                 end
               end
             end
+
+            define_method(:freeze) do
+              map.each_key { |name| public_send(name) }
+              super()
+            end
           end
           self
         end

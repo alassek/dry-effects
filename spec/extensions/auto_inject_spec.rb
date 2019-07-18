@@ -118,4 +118,34 @@ RSpec.describe 'dry-auto_inject extnesion' do
       expect(provided).to be(overridden_repo)
     end
   end
+
+  context 'recursive loading' do
+    let(:dep_a) { Class.new.include(import['dep_b']) }
+
+    let(:dep_b) { Class.new.include(import['dep_c']) }
+
+    let(:dep_c) { Class.new }
+
+    let(:container) do
+      Dry::Container.new.tap do |c|
+        c.register('dep_a') { dep_a.new }
+        c.register('dep_b') { dep_b.new }
+        c.register('dep_c') { dep_c.new }
+      end
+    end
+
+    before do
+      extend Dry::Effects::Handler.Resolve(container)
+    end
+
+    it 'triggers loading on .freeze' do
+      provide { container['dep_a'].freeze }
+
+      expect(container['dep_a'].dep_b).to be_a(dep_b)
+
+      expect { container['dep_b'].dep_c }.to raise_error(
+        Dry::Effects::Errors::UnhandledEffectError
+      )
+    end
+  end
 end
